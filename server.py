@@ -20,8 +20,17 @@ def matchmaking_loop():
                 player1 = waiting_clients.pop(0)
                 player2 = waiting_clients.pop(0)
 
+                # Attribuer les rôles
+                player1['role'] = 'X'  # Croix
+                player2['role'] = 'O'  # Rond
+
                 match_id = db.create_match(player1, player2)
-                print(f"[MATCH #{match_id}] {player1['pseudo']} VS {player2['pseudo']}")
+                print(f"[MATCH #{match_id}] {player1['pseudo']} (X) VS {player2['pseudo']} (O)")
+
+                # Informer les joueurs de leur rôle
+                print(f"[MATCH #{match_id}] Envoi des rôles : {player1['pseudo']} -> X, {player2['pseudo']} -> O")
+                player1['socket'].sendall("ROLE:X".encode())
+                player2['socket'].sendall("ROLE:O".encode())
 
                 # Démarre le jeu dans un thread séparé
                 threading.Thread(target=Game, args=(match_id, player1, player2, db), daemon=True).start()
@@ -51,6 +60,7 @@ def handle_client(client_sock, client_addr):
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Permet de réutiliser l'adresse
     server.bind((HOST, PORT))
     server.listen(5)
     print(f"[⚙️ SERVEUR] En écoute sur {HOST}:{PORT}")
